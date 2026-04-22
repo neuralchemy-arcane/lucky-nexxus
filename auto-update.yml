@@ -1,0 +1,111 @@
+# =============================================================================
+# Lucky Nexus - Auto-Update GitHub Actions Workflow
+# =============================================================================
+# This workflow automatically:
+#   1. Scrapes latest SA lottery results after each draw
+#   2. Runs the 6-model AI prediction engine
+#   3. Rebuilds and deploys the site
+#
+# DRAW SCHEDULE (SA Time = UTC+2):
+#   Powerball:     Tuesday & Friday at 21:00
+#   Lotto/Plus:    Wednesday & Saturday at 21:00
+#
+# CRON SCHEDULE (run at 21:30 SA time = 19:30 UTC):
+#   Tuesday, Wednesday, Friday, Saturday
+# =============================================================================
+
+name: Auto-Update Predictions
+
+on:
+  schedule:
+    # Run at 19:30 UTC on draw days (Tue, Wed, Fri, Sat)
+    # This is 21:30 South African time, 30 min after draws
+    - cron: '30 19 * * 2,3,5,6'
+
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  update-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ---- Step 1: Checkout code ----
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ---- Step 2: Setup Node.js ----
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # ---- Step 3: Setup Python ----
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # ---- Step 4: Install Node dependencies ----
+      - name: Install npm packages
+        run: npm ci
+
+      # ---- Step 5: Install Python dependencies ----
+      - name: Install Python packages
+        run: |
+          pip install pandas numpy playwright
+          playwright install chromium
+
+      # ---- Step 6: Copy data files ----
+      - name: Setup data directory
+        run: |
+          mkdir -p public/data
+          for csv in sa_lotto_results_2000_2026.csv lotto_plus_1_results.csv lotto_plus_2_results.csv powerball_results.csv; do
+            if [ -f "$csv" ]; then
+              cp "$csv" "public/data/$csv"
+            fi
+          done
+
+      # ---- Step 7: Scrape latest results ----
+      - name: Scrape latest lottery results
+        run: |
+          cd scripts
+          python3 -c "
+import asyncio
+import sys
+sys.path.insert(0, '.')
+from scraper import scrape_all
+asyncio.run(scrape_all())
+" || echo "Scraper failed, continuing with existing data"
+
+      # ---- Step 8: Run AI predictions ----
+      - name: Run AI prediction engine
+        run: |
+          cd scripts
+          python3 -c "
+import sys
+sys.path.insert(0, '.')
+from predictor import run_predictions
+run_predictions('../public/data', '../public/predictions.json')
+"
+
+      # ---- Step 9: Build React app ----
+      - name: Build React app
+        run: npm run build
+
+      # ---- Step 10: Deploy to GitHub Pages ----
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+
+      # ---- Step 11: Commit updated data ----
+      - name: Commit updated predictions
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add public/predictions.json public/data/
+          git diff --quiet && git diff --staged --quiet || git commit -m "Auto-update: Refresh predictions $(date +%Y-%m-%d)"
+          git push || echo "Nothing to commit"
