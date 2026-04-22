@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Lucky Nexus - Opening...</title>
+  <meta http-equiv="refresh" content="0; url=dist/index.html">
+  <style>
+    body {
+      background: #0B0C10;
+      color: #C5C6C7;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      text-align: center;
+      padding: 20px;
+    }
+    .loader {
+      width: 60px;
+      height: 60px;
+      border: 3px solid #2A3A4B;
+      border-top-color: #66FCF1;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 30px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h1 {
+      background: linear-gradient(135deg, #66FCF1, #45A29E);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-size: 2rem;
+      margin: 0 0 10px;
+    }
+    p { color: #8A95A5; margin: 5px 0; }
+    .btn {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 14px 32px;
+      background: linear-gradient(135deg, #66FCF1, #45A29E);
+      color: #0B0C10;
+      text-decoration: none;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="loader"></div>
+  <h1>Lucky Nexus</h1>
+  <p>6-Model AI Lottery Predictor</p>
+  <p>Loading predictions...</p>
+  <a class="btn" href="dist/index.html">Click here if not redirected</a>
+</body>
+</html>
